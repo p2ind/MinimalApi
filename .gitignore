@@ -1,7 +1,4 @@
 "# MinimalApi" 
-/bin
-/obj
-/.vs
-/.vs
-.vs/
-obj/
+bin
+obj
+.vs
