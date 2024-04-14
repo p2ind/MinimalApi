@@ -1,4 +1,4 @@
 "# MinimalApi" 
-bin
-obj
-.vs
+/MinimalAPIsMovies/bin
+/MinimalAPIsMovies/obj
+/MinimalAPIsMovies/.vs
