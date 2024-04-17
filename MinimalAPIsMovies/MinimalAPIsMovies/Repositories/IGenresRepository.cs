@@ -7,5 +7,8 @@ namespace MinimalAPIsMovies.Repositories
         Task<int> CreateAsync(Genre genre);
         Task<Genre?> GetByIdAsync(int id);
         Task<List<Genre>> GetAllAsync();
+        Task<bool> Exists(int id);
+        Task Update(Genre genre);
+        Task Delete(int id);
     }
 }

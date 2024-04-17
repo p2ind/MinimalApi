@@ -18,6 +18,16 @@ namespace MinimalAPIsMovies.Repositories
             return genre.Id;
         }
 
+        public async Task Delete(int id)
+        {
+           await _context.Genres.Where(g=>g.Id==id).ExecuteDeleteAsync();
+        }
+
+        public async Task<bool> Exists(int id)
+        {
+          return await _context.Genres.AnyAsync(x=> x.Id == id);
+        }
+
         public async Task<List<Genre>> GetAllAsync()
         {
             return await _context.Genres.OrderBy(x=>x.Name).ToListAsync();
@@ -26,6 +36,12 @@ namespace MinimalAPIsMovies.Repositories
         public async Task<Genre?> GetByIdAsync(int id)
         {
             return await _context.Genres.FirstOrDefaultAsync(g => g.Id == id);
+        }
+
+        public async Task Update(Genre genre)
+        {
+            _context.Update(genre);
+            await _context.SaveChangesAsync();
         }
     }
 }
