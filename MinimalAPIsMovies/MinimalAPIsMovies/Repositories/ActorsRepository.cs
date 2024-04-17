@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MinimalAPIsMovies.DTOs;
 using MinimalAPIsMovies.Entities;
 
 namespace MinimalAPIsMovies.Repositories
@@ -6,19 +7,32 @@ namespace MinimalAPIsMovies.Repositories
     public class ActorsRepository : IActorsRepository
     {
         private readonly ApplicationDbContext _context;
-        public ActorsRepository(ApplicationDbContext context)
+        private readonly IHttpContextAccessor _contextAccessor;
+        public ActorsRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _contextAccessor = httpContextAccessor;
         }
 
-        public async Task<List<Actor>> GetAll()
+        public async Task<List<Actor>> GetAll(PaginationDTO pagination)
         {
-            return await _context.Actors.OrderBy(a => a.Name).ToListAsync();
+            var queryable = _context.Actors.AsQueryable();
+            await _contextAccessor
+                    .HttpContext!
+                    .InsertPaginationParameterInResponseHeader(queryable);
+            return await queryable.OrderBy(a => a.Name).Paginate(pagination).ToListAsync();
         }
 
         public async Task<Actor?> GetById(int id)
         {
             return await _context.Actors.FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+        public async Task<List<Actor>> GetByName(string name)
+        {
+            return await _context.Actors
+                .Where(a=>a.Name.Contains(name))
+                .OrderBy(a=>a.Name).ToListAsync();
         }
 
         public async Task<int> Create(Actor actor)
