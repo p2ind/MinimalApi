@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPIsMovies;
 using MinimalAPIsMovies.Endpoints;
 using MinimalAPIsMovies.Repositories;
+using MinimalAPIsMovies.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IGenresRepository, GenreRepository>();
+builder.Services.AddScoped<IActorsRepository, ActorsRepository>();
+
+//builder.Services.AddTransient<IFileStorage, AzureFileStorage>();
+
+builder.Services.AddTransient<IFileStorage, LocalFileStorage>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -42,6 +50,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseStaticFiles();
+
 
 app.UseCors();
 
@@ -50,6 +60,7 @@ app.UseOutputCache();
 app.MapGet("/", () => "Hello, World");
 
 app.MapGroup("/genres").MapGenres();
+app.MapGroup("/actors").MapActors();
 
 #endregion Middlewares zone - END
 
