@@ -32,6 +32,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IGenresRepository, GenreRepository>();
 builder.Services.AddScoped<IActorsRepository, ActorsRepository>();
+builder.Services.AddScoped<IMoviesRepository, MoviesRepository>();
 
 //builder.Services.AddTransient<IFileStorage, AzureFileStorage>();
 
@@ -60,6 +61,7 @@ app.MapGet("/", () => "Hello, World");
 
 app.MapGroup("/genres").MapGenres();
 app.MapGroup("/actors").MapActors();
+app.MapGroup("/movies").MapMovies();
 
 #endregion Middlewares zone - END
 
