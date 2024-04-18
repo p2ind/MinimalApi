@@ -49,7 +49,7 @@ namespace MinimalAPIsMovies.Repositories
 
         public async Task Update(Actor actor)
         {
-            _context.Add(actor);
+            _context.Update(actor);
             await _context.SaveChangesAsync();
         }
 
