@@ -25,6 +25,7 @@ namespace MinimalAPIsMovies.Repositories
         public async Task<Movie?> GetById(int id)
         {
             return await _context.Movies
+                .Include(m=>m.Comments)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
