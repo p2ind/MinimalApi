@@ -47,6 +47,11 @@ namespace MinimalAPIsMovies.Repositories
             return await _context.Actors.AnyAsync(a => a.Id == id);
         }
 
+        public async Task<List<int>> Exists(List<int> ids)
+        {
+            return await _context.Actors.Where(a=>ids.Contains(a.Id)).Select(a=>a.Id).ToListAsync();
+        }
+
         public async Task Update(Actor actor)
         {
             _context.Update(actor);
