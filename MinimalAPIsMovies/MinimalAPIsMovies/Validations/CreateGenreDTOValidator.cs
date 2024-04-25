@@ -1,13 +1,30 @@
 ﻿using FluentValidation;
 using MinimalAPIsMovies.DTOs;
+using MinimalAPIsMovies.Repositories;
 
 namespace MinimalAPIsMovies.Validations
 {
     public class CreateGenreDTOValidator : AbstractValidator<CreateGenreDTO>
     {
-        public CreateGenreDTOValidator()
+        public CreateGenreDTOValidator(IGenresRepository genresRepository, IHttpContextAccessor httpContextAccessor)
         {
-            RuleFor(p=>p.Name).NotEmpty();
-        }
+            var routeValueId = httpContextAccessor.HttpContext!.Request.RouteValues["id"];
+            var id = 0;
+
+            if(routeValueId is string routeValueIdString)
+            {
+                int.TryParse(routeValueIdString, out id );
+            }
+
+            RuleFor(p => p.Name)
+                .NotEmpty().WithMessage(ValidationUtilities.NoEmptyMessage)
+                .MaximumLength(150).WithMessage(ValidationUtilities.MaximumLengthMessage)
+                .Must(ValidationUtilities.FirstLetterIsUpperCase).WithMessage(ValidationUtilities.FirstLetterIsUpperCaseMessage)
+                .MustAsync(async (name, _) => 
+                {
+                    var exsits = await genresRepository.Exists(id, name);
+                    return !exsits;
+                }).WithMessage(g=> $"A genre with the name {g.Name} already exists");
+        }        
     }
 }

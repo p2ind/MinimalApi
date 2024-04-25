@@ -28,6 +28,11 @@ namespace MinimalAPIsMovies.Repositories
           return await _context.Genres.AnyAsync(x=> x.Id == id);
         }
 
+        public async Task<bool> Exists(int id, string name)
+        {
+            return await _context.Genres.AnyAsync(x=>x.Id != id && x.Name==name);
+        }
+
         public async Task<List<int>> Exists(List<int> ids)
         {
             return await _context.Genres.Where(g=> ids.Contains(g.Id)).Select(g=>g.Id).ToListAsync();
