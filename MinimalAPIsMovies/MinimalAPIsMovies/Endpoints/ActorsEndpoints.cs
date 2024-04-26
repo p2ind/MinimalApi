@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using MinimalAPIsMovies.DTOs;
 using MinimalAPIsMovies.Entities;
+using MinimalAPIsMovies.Filters;
 using MinimalAPIsMovies.Repositories;
 using MinimalAPIsMovies.Services;
 
@@ -16,11 +17,12 @@ namespace MinimalAPIsMovies.Endpoints
 
         public static RouteGroupBuilder MapActors(this RouteGroupBuilder group)
         {
-            group.MapGet("/",GetAll).CacheOutput(c=>c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
+            group.MapGet("/", GetAll);
+                //.CacheOutput(c=>c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
             group.MapGet("getByName/{name}", GetByName);
             group.MapGet("/{id:int}", GetById);
-            group.MapPost("/", Create).DisableAntiforgery();
-            group.MapPut("/{id:int}", Update).DisableAntiforgery();
+            group.MapPost("/", Create).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateActorDTO>>();
+            group.MapPut("/{id:int}", Update).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateActorDTO>>();
             group.MapDelete("/{id:int}", Delete).DisableAntiforgery();
             return group;
         }
@@ -53,17 +55,10 @@ namespace MinimalAPIsMovies.Endpoints
             return TypedResults.Ok(actorDTO);
         }
 
-        static async Task<Results<Created<ActorDTO>, ValidationProblem>> Create([FromForm] CreateActorDTO createActorDTO, IActorsRepository repository, 
-            IOutputCacheStore outputCacheStore, IMapper mapper, IFileStorage fileStorage, IValidator<CreateActorDTO> validator)
+        static async Task<Created<ActorDTO>> Create([FromForm] CreateActorDTO createActorDTO, IActorsRepository repository, 
+            IOutputCacheStore outputCacheStore, IMapper mapper, IFileStorage fileStorage)
         {
-            var validationResult = await validator.ValidateAsync(createActorDTO);
-
-            if (!validationResult.IsValid)
-            {
-                return TypedResults.ValidationProblem(validationResult.ToDictionary());
-            }
-
-            var actor = mapper.Map<Actor>(createActorDTO);
+           var actor = mapper.Map<Actor>(createActorDTO);
 
             if(createActorDTO.Picture is not null)
             {
