@@ -1,17 +1,27 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using MinimalAPIsMovies;
 using MinimalAPIsMovies.Endpoints;
+using MinimalAPIsMovies.Entities;
 using MinimalAPIsMovies.Repositories;
 using MinimalAPIsMovies.Services;
-using MinimalAPIsMovies.Entities;
-using MinimalAPIsMovies;
+using MinimalAPIsMovies.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
 #region services zone - BEGIN
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer("name=DefaultConnection"));
+
+builder.Services.AddIdentityCore<IdentityUser>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<UserManager<IdentityUser>>();
+builder.Services.AddScoped<SignInManager<IdentityUser>>();
 
 builder.Services.AddCors(options =>
 {
@@ -44,11 +54,36 @@ builder.Services.AddScoped<IErrorsRepository, ErrorsRepository>();
 builder.Services.AddTransient<IFileStorage, LocalFileStorage>();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddTransient<IUserService, UserService>();
+
 builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddProblemDetails();
+
+builder.Services.AddAuthentication().AddJwtBearer(options => 
+{
+
+    options.MapInboundClaims = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero,
+        IssuerSigningKeys = KeysHandler.GetAllKeys(builder.Configuration),
+        //IssuerSigningKey = KeysHandler.GetKey(builder.Configuration).First()
+    };
+}) ;
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("isadmin", policy => policy.RequireClaim("isadmin"));
+});
+
 #endregion services zone - end
 
 var app = builder.Build();
@@ -86,6 +121,8 @@ app.UseCors();
 
 app.UseOutputCache();
 
+app.UseAuthorization();
+
 app.MapGet("/", () => "Hello, World");
 app.MapGet("/error", () => 
 {
@@ -96,8 +133,8 @@ app.MapGroup("/genres").MapGenres();
 app.MapGroup("/actors").MapActors();
 app.MapGroup("/movies").MapMovies();
 app.MapGroup("/movies/{movieId:int}/comments").MapComments();
+app.MapGroup("/users").MapUsers();
 
 #endregion Middlewares zone - END
-
 
 app.Run();
