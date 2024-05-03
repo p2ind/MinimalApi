@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPIsMovies.Entities;
+using Error = MinimalAPIsMovies.Entities.Error;
 
 namespace MinimalAPIsMovies
 {

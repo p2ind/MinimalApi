@@ -23,14 +23,34 @@ namespace MinimalAPIsMovies.Endpoints
 
             group.MapPut("/{id:int}", Update)
                 .AddEndpointFilter<ValidationFilter<CreateGenreDTO>>()
-                 .RequireAuthorization("isadmin");
+                 .RequireAuthorization("isadmin")
+                 .WithOpenApi(options =>
+                 {
+                     options.Summary = "Update a genre";
+                     options.Description = "with this endpoint we can update a genre";
+                     options.Parameters[0].Description = "The id of the genre to update";
+                     options.RequestBody.Description = "this genre to update";
+
+                     return options;
+                 }); 
 
             group.MapDelete("/{id:int}", Delete).RequireAuthorization("isadmin");
             return group;
         }
 
-        static async Task<Ok<List<GenreDTO>>> GetGenres(IGenresRepository repository, IMapper mapper)
+        static async Task<Ok<List<GenreDTO>>> GetGenres(IGenresRepository repository, 
+            IMapper mapper, ILoggerFactory loggerFactory)
         {
+            var type = typeof(GenresEndPoints);
+            var logger = loggerFactory.CreateLogger(type.FullName!);
+            logger.LogTrace("this is a trace message");
+            logger.LogDebug("this is a debug message");
+            logger.LogInformation("this is a information message");
+            logger.LogWarning("this is a warning message");
+            logger.LogError("this is a error message");
+            logger.LogCritical("this is a critical message");
+            // logger.LogInformation("Getting the list of genres");
+
             var genres = await repository.GetAllAsync();
             var genresDTO = mapper.Map<List<GenreDTO>>(genres);
             return TypedResults.Ok(genresDTO);
