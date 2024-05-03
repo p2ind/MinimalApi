@@ -3,18 +3,29 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MinimalAPIsMovies;
 using MinimalAPIsMovies.Endpoints;
-using MinimalAPIsMovies.Entities;
+using MinimalAPIsMovies.GraphQL;
 using MinimalAPIsMovies.Repositories;
 using MinimalAPIsMovies.Services;
+using MinimalAPIsMovies.Swagger;
 using MinimalAPIsMovies.Utilities;
+using Error = MinimalAPIsMovies.Entities.Error;
 
 var builder = WebApplication.CreateBuilder(args);
 
 #region services zone - BEGIN
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer("name=DefaultConnection"));
+
+builder.Services.AddGraphQLServer()
+    .AddQueryType<Query>()
+    .AddMutationType<Mutation>()
+    .AddAuthorization()
+    .AddProjections()
+    .AddFiltering()
+    .AddSorting();
 
 builder.Services.AddIdentityCore<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -38,10 +49,44 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddOutputCache();
+//builder.Services.AddOutputCache();
+
+builder.Services.AddStackExchangeRedisOutputCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("redis");
+});
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Movies API",
+        Description = "This is a web api for working with movie data",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Email = "dummy@outlook.com",
+            Name = "dummy",
+            Url = new Uri("https://www.google.co.in")
+        },
+        License = new Microsoft.OpenApi.Models.OpenApiLicense
+        {
+            Name = "MIT",
+            Url = new Uri("https://opensource.org/license/mit/")
+        }
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+
+    options.OperationFilter<AuthorizationFilter>();
+});
 
 builder.Services.AddScoped<IGenresRepository, GenreRepository>();
 builder.Services.AddScoped<IActorsRepository, ActorsRepository>();
@@ -62,7 +107,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddProblemDetails();
 
-builder.Services.AddAuthentication().AddJwtBearer(options => 
+builder.Services.AddAuthentication().AddJwtBearer(options =>
 {
 
     options.MapInboundClaims = false;
@@ -77,7 +122,7 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
         IssuerSigningKeys = KeysHandler.GetAllKeys(builder.Configuration),
         //IssuerSigningKey = KeysHandler.GetKey(builder.Configuration).First()
     };
-}) ;
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -106,11 +151,11 @@ app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async con
     var repository = context.RequestServices.GetRequiredService<IErrorsRepository>();
     await repository.Create(error);
 
-    await Results.BadRequest(new 
-    { 
+    await Results.BadRequest(new
+    {
         type = "error",
-        message = "an unexpected exception has occurred", 
-        status = 500 
+        message = "an unexpected exception has occurred",
+        status = 500
     }).ExecuteAsync(context);
 }));
 app.UseStatusCodePages();
@@ -123,8 +168,10 @@ app.UseOutputCache();
 
 app.UseAuthorization();
 
+app.MapGraphQL();
+
 app.MapGet("/", () => "Hello, World");
-app.MapGet("/error", () => 
+app.MapGet("/error", () =>
 {
     throw new InvalidOperationException("example error");
 });

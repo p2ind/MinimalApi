@@ -3,11 +3,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.OpenApi.Any;
 using MinimalAPIsMovies.DTOs;
 using MinimalAPIsMovies.Entities;
 using MinimalAPIsMovies.Filters;
 using MinimalAPIsMovies.Repositories;
 using MinimalAPIsMovies.Services;
+using MinimalAPIsMovies.Utilities;
 
 namespace MinimalAPIsMovies.Endpoints
 {
@@ -18,30 +20,30 @@ namespace MinimalAPIsMovies.Endpoints
         public static RouteGroupBuilder MapActors(this RouteGroupBuilder group)
         {
             group.MapGet("/", GetAll)
-                .CacheOutput(c=>c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
+                .CacheOutput(c => c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"))
+                .AddPaginationParameters();
+
             group.MapGet("getByName/{name}", GetByName);
             group.MapGet("/{id:int}", GetById);
-
-
 
             group.MapPost("/", Create)
                 .DisableAntiforgery()
                 .AddEndpointFilter<ValidationFilter<CreateActorDTO>>()
-                .RequireAuthorization("isadmin");
+                .RequireAuthorization("isadmin")
+                .WithOpenApi();
 
             group.MapPut("/{id:int}", Update)
                 .DisableAntiforgery()
                 .AddEndpointFilter<ValidationFilter<CreateActorDTO>>()
-                .RequireAuthorization("isadmin");
-            
+                .RequireAuthorization("isadmin")
+                .WithOpenApi();            
 
             group.MapDelete("/{id:int}", Delete).RequireAuthorization("isadmin");
             return group;
         }
 
-        static async Task<Ok<List<ActorDTO>>> GetAll(IActorsRepository repository, IMapper mapper, int page=1, int recordsPerPage = 10)
+        static async Task<Ok<List<ActorDTO>>> GetAll(IActorsRepository repository, IMapper mapper, PaginationDTO pagination)
         {
-            var pagination = new PaginationDTO{Page=page, RecordsPerPage=recordsPerPage };
             var actors = await repository.GetAll(pagination);
             var actorsDTO = mapper.Map<List<ActorDTO>>(actors);
             return TypedResults.Ok(actorsDTO);
